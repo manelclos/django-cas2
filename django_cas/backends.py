@@ -5,9 +5,9 @@ from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
-from urllib import urlencode, urlopen
 from urlparse import urljoin
 from xml.dom import minidom
+import requests
 import logging
 import time
 
@@ -55,10 +55,11 @@ class CASBackend(ModelBackend):
         if settings.CAS_RENEW:
             params.update({'renew': 'true'})
     
-        page = urlopen(urljoin(settings.CAS_SERVER_URL, 'proxyValidate') + '?' + urlencode(params))
-    
+        verify_url = urljoin(settings.CAS_SERVER_URL, 'proxyValidate')
+        page = requests.get(verify_url, params=params)
+
         try:
-            response = minidom.parseString(page.read())
+            response = minidom.parseString(page.content)
             if response.getElementsByTagName('cas:authenticationFailure'):
                 logger.warn("Authentication failed from CAS server: %s", 
                             response.getElementsByTagName('cas:authenticationFailure')[0].firstChild.nodeValue)
